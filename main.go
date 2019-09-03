@@ -1,10 +1,12 @@
 package main
 
 import (
+    "flag"
     "fmt"
     "io"
     "log"
     "net/http"
+    "os"
     "strconv"
     "sync"
     "time"
@@ -26,23 +28,87 @@ const workerShift = sequenceBits
 const dataCenterShift = sequenceBits + workerBits
 const timestampShift = dataCenterShift + dataCenterBits
 
-var dataCenterId int64 = 1 //TODO 配置
-var workerId int64 = 1     //TODO 配置
+var dataCenterId int64
+var workerId int64
 
 var sequence int64 = 0
 var lastTimestamp int64 = -1
 
 var lck sync.Mutex
 
+var (
+    h    bool
+    v    bool
+    c    string
+    d, w int64
+    p    int
+    r    string
+)
+
+func init() {
+    flag.BoolVar(&h, "h", false, "this help")
+    flag.BoolVar(&v, "v", false, "show version and exit")
+    flag.StringVar(&c, "c", "./etc/id.conf", "id-generator config file")
+    flag.Int64Var(&d, "d", -1, "data center id")
+    flag.Int64Var(&w, "w", -1, "worker id")
+    flag.IntVar(&p, "p", PORT, "listen on port")
+    flag.StringVar(&r, "r", "/id/next", "router path")
+
+    flag.Usage = usage
+}
+
+/*
+
+type Config struct {
+    dateCenterId int64 `d:"dateCenterId"`
+    workerId     int64 `w:"workerId"`
+}
+
+func NewConfigWithFile(name string) (*Config, error) {
+    data, err := ioutil.ReadFile(name)
+    if err != nil {
+        return nil, errors.Trace(err)
+    }
+
+    return NewConfig(string(data))
+}
+
+func NewConfig(data string) (*Config, error) {
+    var c Config
+
+    _, err := toml.Decode(data, &c)
+    if err != nil {
+        return nil, errors.Trace(err)
+    }
+
+    return &c, nil
+}
+
+*/
+
 func main() {
-    //TODO 从外部读取dataCenterId、workerId
+    flag.Parse()
+
+    if h {
+        flag.Usage()
+        return
+    }
+
+    if v {
+        fmt.Println("1.0.0")
+        return
+    }
+
+    dataCenterId = d
+    workerId = w
+
     preCheck()
 
-    http.HandleFunc("/id/next", func(writer http.ResponseWriter, request *http.Request) {
+    http.HandleFunc(r, func(writer http.ResponseWriter, request *http.Request) {
         io.WriteString(writer, strconv.FormatInt(nextId(), 10))
     })
 
-    addr := fmt.Sprintf("%s%d", ":", PORT)
+    addr := fmt.Sprintf("%s%d", ":", p)
     log.Printf("IDGenerator startup, port%s\n", addr)
     log.Fatal(http.ListenAndServe(addr, nil))
 }
@@ -91,4 +157,9 @@ func getNextTimestamp() int64 {
         currentTimestamp = currentTimeMillis()
     }
     return currentTimestamp
+}
+
+func usage() {
+    fmt.Fprintf(os.Stdout, "Usage: id-generator [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+    flag.PrintDefaults()
 }
