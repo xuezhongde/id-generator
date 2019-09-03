@@ -1,8 +1,8 @@
 ### Usage
 ```
 Usage: id-generator [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]
-  -c string
 Options:
+  -c string
     	id-generator config file (default "./etc/id.conf")
   -d int
     	data center id (default -1)
