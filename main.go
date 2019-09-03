@@ -26,8 +26,8 @@ const workerShift = sequenceBits
 const dataCenterShift = sequenceBits + workerBits
 const timestampShift = dataCenterShift + dataCenterBits
 
-var dataCenterId int64 = 1
-var workerId int64 = 1
+var dataCenterId int64 = 1 //TODO 配置
+var workerId int64 = 1     //TODO 配置
 
 var sequence int64 = 0
 var lastTimestamp int64 = -1
@@ -35,6 +35,7 @@ var lastTimestamp int64 = -1
 var lck sync.Mutex
 
 func main() {
+    //TODO 从外部读取dataCenterId、workerId
     preCheck()
 
     http.HandleFunc("/id/next", func(writer http.ResponseWriter, request *http.Request) {
