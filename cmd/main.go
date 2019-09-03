@@ -3,6 +3,8 @@ package main
 import (
     "flag"
     "fmt"
+    "github.com/juju/errors"
+    conf "github.com/xuezhongde/id-generator"
     "io"
     "log"
     "net/http"
@@ -28,6 +30,8 @@ const workerShift = sequenceBits
 const dataCenterShift = sequenceBits + workerBits
 const timestampShift = dataCenterShift + dataCenterBits
 
+var port int
+var router string
 var dataCenterId int64
 var workerId int64
 
@@ -48,43 +52,14 @@ var (
 func init() {
     flag.BoolVar(&h, "h", false, "this help")
     flag.BoolVar(&v, "v", false, "show version and exit")
-    flag.StringVar(&c, "c", "./etc/id.conf", "id-generator config file")
+    flag.StringVar(&c, "c", "./etc/id.toml", "id-generator config file")
     flag.Int64Var(&d, "d", -1, "data center id")
     flag.Int64Var(&w, "w", -1, "worker id")
-    flag.IntVar(&p, "p", PORT, "listen on port")
-    flag.StringVar(&r, "r", "/id/next", "router path")
+    flag.IntVar(&p, "p", -1, "listen on port")
+    flag.StringVar(&r, "r", "", "router path")
 
     flag.Usage = usage
 }
-
-/*
-
-type Config struct {
-    dateCenterId int64 `d:"dateCenterId"`
-    workerId     int64 `w:"workerId"`
-}
-
-func NewConfigWithFile(name string) (*Config, error) {
-    data, err := ioutil.ReadFile(name)
-    if err != nil {
-        return nil, errors.Trace(err)
-    }
-
-    return NewConfig(string(data))
-}
-
-func NewConfig(data string) (*Config, error) {
-    var c Config
-
-    _, err := toml.Decode(data, &c)
-    if err != nil {
-        return nil, errors.Trace(err)
-    }
-
-    return &c, nil
-}
-
-*/
 
 func main() {
     flag.Parse()
@@ -99,17 +74,49 @@ func main() {
         return
     }
 
-    dataCenterId = d
-    workerId = w
+    cfg, err := conf.LoadConfig(c)
+    if err != nil {
+        println(errors.ErrorStack(err))
+        return
+    }
+
+    if p >= 0 {
+        cfg.Port = p
+    }
+
+    if len(r) > 0 {
+        cfg.Router = r
+    }
+
+    if d >= 0 {
+        cfg.DateCenterId = d
+    }
+
+    if w >= 0 {
+        cfg.WorkerId = w
+    }
+
+    if cfg.Port <= 0 {
+        cfg.Port = PORT
+    }
+
+    if len(cfg.Router) <= 0 {
+        cfg.Router = "/id"
+    }
+
+    port = cfg.Port
+    router = cfg.Router
+    dataCenterId = cfg.DateCenterId
+    workerId = cfg.WorkerId
 
     preCheck()
 
-    http.HandleFunc(r, func(writer http.ResponseWriter, request *http.Request) {
+    http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
         io.WriteString(writer, strconv.FormatInt(nextId(), 10))
     })
 
-    addr := fmt.Sprintf("%s%d", ":", p)
-    log.Printf("IDGenerator startup, port%s\n", addr)
+    addr := fmt.Sprintf("%s%d", ":", port)
+    log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, dataCenterId, workerId)
     log.Fatal(http.ListenAndServe(addr, nil))
 }
 
