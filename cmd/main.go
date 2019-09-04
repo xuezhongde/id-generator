@@ -52,7 +52,7 @@ var (
 func init() {
     flag.BoolVar(&h, "h", false, "this help")
     flag.BoolVar(&v, "v", false, "show version and exit")
-    flag.StringVar(&c, "c", "./etc/id.toml", "id-generator config file")
+    flag.StringVar(&c, "c", "./etc/id.toml", "id generator config file")
     flag.Int64Var(&d, "d", -1, "data center id")
     flag.Int64Var(&w, "w", -1, "worker id")
     flag.IntVar(&p, "p", -1, "listen on port")
@@ -167,6 +167,6 @@ func getNextTimestamp() int64 {
 }
 
 func usage() {
-    fmt.Fprintf(os.Stdout, "Usage: id-generator [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+    fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
     flag.PrintDefaults()
 }
