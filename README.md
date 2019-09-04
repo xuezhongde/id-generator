@@ -26,3 +26,6 @@ Options:
   -w int
     	worker id (default -1)
 ```
+
+## TODO
+- 平滑重启与加载配置

@@ -1,15 +1,14 @@
 package main
 
 import (
+    "encoding/json"
     "flag"
     "fmt"
     "github.com/juju/errors"
     conf "github.com/xuezhongde/id-generator"
-    "io"
     "log"
     "net/http"
     "os"
-    "strconv"
     "sync"
     "time"
 )
@@ -112,7 +111,9 @@ func main() {
     preCheck()
 
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
-        io.WriteString(writer, strconv.FormatInt(nextId(), 10))
+        apiRsp := ApiResponse{0, "success", nextId()}
+        rspJson, _ := json.Marshal(&apiRsp)
+        _, _ = writer.Write(rspJson)
     })
 
     addr := fmt.Sprintf("%s%d", ":", port)
@@ -167,6 +168,12 @@ func getNextTimestamp() int64 {
 }
 
 func usage() {
-    fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+    _, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
     flag.PrintDefaults()
+}
+
+type ApiResponse struct {
+    Code int16  `json:"code"`
+    Msg  string `json:"msg"`
+    Data int64  `json:"data"`
 }
