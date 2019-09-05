@@ -5,42 +5,24 @@ import (
     "flag"
     "fmt"
     "github.com/juju/errors"
-    conf "github.com/xuezhongde/id-generator"
+    "github.com/xuezhongde/id-generator/id"
     "log"
     "net/http"
     "os"
-    "sync"
-    "time"
 )
 
-const DEFAULT_PORT = 8000
-const DEFAULT_APP_NAME = "id-generator"
-const DEFAULT_PROFILE = "dev"
-const DEFAULT_ROUTER = "/id"
+const (
+    DefaultAppName = "id-generator"
+    DefaultProfile = "dev"
+    DefaultPort    = 8000
+    DefaultRouter  = "/id"
+    ProbeRouter    = "/probe"
 
-const startTimestamp int64 = 1563764872049
-
-const dataCenterBits = 5
-const workerBits = 5
-const sequenceBits = 12
-
-const maxDataCenterNum = -1 ^ (-1 << dataCenterBits)
-const maxWorkerNum = -1 ^ (-1 << workerBits)
-const maxSequence = -1 ^ (-1 << sequenceBits)
-
-const workerShift = sequenceBits
-const dataCenterShift = sequenceBits + workerBits
-const timestampShift = dataCenterShift + dataCenterBits
-
-var port int
-var router string
-var dataCenterId int64
-var workerId int64
-
-var sequence int64 = 0
-var lastTimestamp int64 = -1
-
-var lck sync.Mutex
+    DefaultStartTimestamp int64  = 1563764872049
+    DefaultDataCenterBits uint16 = 5
+    DefaultWorkerBits     uint16 = 5
+    DefaultSequenceBits   uint16 = 12
+)
 
 var (
     h    bool
@@ -76,7 +58,7 @@ func main() {
         return
     }
 
-    cfg, err := conf.LoadConfig(c)
+    cfg, err := id.LoadConfig(c)
     if err != nil {
         println(errors.ErrorStack(err))
         return
@@ -99,93 +81,45 @@ func main() {
     }
 
     if cfg.Port <= 0 {
-        cfg.Port = DEFAULT_PORT
+        cfg.Port = DefaultPort
     }
 
     if len(cfg.Router) <= 0 {
-        cfg.Router = DEFAULT_ROUTER
+        cfg.Router = DefaultRouter
     }
 
     if len(cfg.AppName) <= 0 {
-        cfg.AppName = DEFAULT_APP_NAME
+        cfg.AppName = DefaultAppName
     }
 
     if len(cfg.Profile) <= 0 {
-        cfg.Profile = DEFAULT_PROFILE
+        cfg.Profile = DefaultProfile
     }
 
-    port = cfg.Port
-    router = cfg.Router
-    dataCenterId = cfg.DateCenterId
-    workerId = cfg.WorkerId
-
-    preCheck()
+    port := cfg.Port
+    router := cfg.Router
+    gen, _ := id.NewGenerator(DefaultStartTimestamp, DefaultDataCenterBits, DefaultWorkerBits, DefaultSequenceBits, cfg.DateCenterId, cfg.WorkerId)
 
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
-        apiRsp := &ApiResponse{0, "success", nextId()}
+        _id, _ := gen.NextId()
+        apiRsp := &ApiResponse{0, "success", _id}
         rspJson, _ := json.Marshal(apiRsp)
         _, _ = writer.Write(rspJson)
     })
 
-    http.HandleFunc("/probe", func(writer http.ResponseWriter, request *http.Request) {
+    http.HandleFunc(ProbeRouter, func(writer http.ResponseWriter, request *http.Request) {
         probeResult := &ProbeResult{0, "success", cfg.AppName, cfg.Profile}
         rspJson, _ := json.Marshal(probeResult)
         _, _ = writer.Write(rspJson)
     })
 
     addr := fmt.Sprintf("%s%d", ":", port)
-    log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, dataCenterId, workerId)
+    log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
     log.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func preCheck() {
-    if dataCenterId > maxDataCenterNum || dataCenterId < 0 {
-        panic(fmt.Sprintf("dataCenterId can't be greater than %d or less than 0, actual: %d", maxDataCenterNum, dataCenterId))
-    }
-
-    if workerId > maxWorkerNum || workerId < 0 {
-        panic(fmt.Sprintf("workerId can't be greater than %d or less than 0, actual: %d", maxWorkerNum, workerId))
-    }
-}
-
-func nextId() int64 {
-    currentTimestamp := currentTimeMillis();
-    if currentTimestamp < lastTimestamp {
-        //TODO error
-        log.Fatal("Clock moved backwards.  Refusing to generate id")
-    }
-
-    lck.Lock()
-    if currentTimestamp == lastTimestamp {
-        sequence = (sequence + 1) & maxSequence
-        //同一毫秒的序列数已经达到最大
-        if sequence == 0 {
-            currentTimestamp = getNextTimestamp()
-        }
-    } else {
-        sequence = 0
-    }
-
-    lastTimestamp = currentTimestamp
-    lck.Unlock()
-
-    return (currentTimestamp-startTimestamp)<<timestampShift | dataCenterId<<dataCenterShift | workerId<<workerShift | sequence
-}
-
-func currentTimeMillis() int64 {
-    return time.Now().UnixNano() / 1e6
-}
-
-func getNextTimestamp() int64 {
-    currentTimestamp := currentTimeMillis()
-    for currentTimestamp <= lastTimestamp {
-        currentTimestamp = currentTimeMillis()
-    }
-    return currentTimestamp
-}
-
 func usage() {
-    _, _ = fmt.Fprintf(os.Stdout, `Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n`)
+    _, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
     flag.PrintDefaults()
 }
 

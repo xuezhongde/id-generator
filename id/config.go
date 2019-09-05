@@ -1,4 +1,4 @@
-package conf
+package id
 
 import (
     "github.com/BurntSushi/toml"
