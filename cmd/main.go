@@ -111,8 +111,8 @@ func main() {
     preCheck()
 
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
-        apiRsp := ApiResponse{0, "success", nextId()}
-        rspJson, _ := json.Marshal(&apiRsp)
+        apiRsp := &ApiResponse{0, "success", nextId()}
+        rspJson, _ := json.Marshal(apiRsp)
         _, _ = writer.Write(rspJson)
     })
 
@@ -168,7 +168,7 @@ func getNextTimestamp() int64 {
 }
 
 func usage() {
-    _, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+    _, _ = fmt.Fprintf(os.Stdout, `Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n`)
     flag.PrintDefaults()
 }
 
