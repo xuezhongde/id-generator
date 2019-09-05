@@ -13,7 +13,10 @@ import (
     "time"
 )
 
-const PORT = 8000
+const DEFAULT_PORT = 8000
+const DEFAULT_APP_NAME = "id-generator"
+const DEFAULT_PROFILE = "dev"
+const DEFAULT_ROUTER = "/id"
 
 const startTimestamp int64 = 1563764872049
 
@@ -96,11 +99,19 @@ func main() {
     }
 
     if cfg.Port <= 0 {
-        cfg.Port = PORT
+        cfg.Port = DEFAULT_PORT
     }
 
     if len(cfg.Router) <= 0 {
-        cfg.Router = "/id"
+        cfg.Router = DEFAULT_ROUTER
+    }
+
+    if len(cfg.AppName) <= 0 {
+        cfg.AppName = DEFAULT_APP_NAME
+    }
+
+    if len(cfg.Profile) <= 0 {
+        cfg.Profile = DEFAULT_PROFILE
     }
 
     port = cfg.Port
@@ -113,6 +124,12 @@ func main() {
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
         apiRsp := &ApiResponse{0, "success", nextId()}
         rspJson, _ := json.Marshal(apiRsp)
+        _, _ = writer.Write(rspJson)
+    })
+
+    http.HandleFunc("/probe", func(writer http.ResponseWriter, request *http.Request) {
+        probeResult := &ProbeResult{0, "success", cfg.AppName, cfg.Profile}
+        rspJson, _ := json.Marshal(probeResult)
         _, _ = writer.Write(rspJson)
     })
 
@@ -176,4 +193,11 @@ type ApiResponse struct {
     Code int16  `json:"code"`
     Msg  string `json:"msg"`
     Data int64  `json:"data"`
+}
+
+type ProbeResult struct {
+    Code    int16  `json:"code"`
+    Msg     string `json:"msg"`
+    AppName string `json:"appName"`
+    Profile string `json:"profile"`
 }

@@ -7,6 +7,8 @@ import (
 )
 
 type Config struct {
+    AppName      string `toml:"appName"`
+    Profile      string `toml:"profile"`
     Port         int    `toml:"port"`
     Router       string `toml:"router"`
     DateCenterId int64  `toml:"date_center_id"`

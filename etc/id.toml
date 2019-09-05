@@ -1,4 +1,9 @@
+appName = "id-generator"
+profile = "dev"
+
 port = 8080
 router = "/id/next"
 date_center_id = 1
 worker_id = 1
+
+
