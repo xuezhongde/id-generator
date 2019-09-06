@@ -103,19 +103,23 @@ func main() {
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
         _id, _ := gen.NextId()
         apiRsp := &ApiResponse{0, "success", _id}
-        rspJson, _ := json.Marshal(apiRsp)
-        _, _ = writer.Write(rspJson)
+        writeJsonResponse(&writer, apiRsp)
     })
 
     http.HandleFunc(ProbeRouter, func(writer http.ResponseWriter, request *http.Request) {
         probeResult := &ProbeResult{0, "success", cfg.AppName, cfg.Profile}
-        rspJson, _ := json.Marshal(probeResult)
-        _, _ = writer.Write(rspJson)
+        writeJsonResponse(&writer, probeResult)
     })
 
     addr := fmt.Sprintf("%s%d", ":", port)
     log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
     log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+func writeJsonResponse(writer *http.ResponseWriter, v interface{}) {
+    jsonBytes, _ := json.Marshal(v)
+    (*writer).Header().Set("Content-Type", "application/json")
+    _, _ = (*writer).Write(jsonBytes)
 }
 
 func usage() {
