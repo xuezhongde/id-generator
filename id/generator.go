@@ -1,8 +1,8 @@
 package id
 
 import (
+    "errors"
     "fmt"
-    "log"
     "sync"
     "time"
 )
@@ -60,8 +60,7 @@ func NewGenerator(startTimestamp int64, dataCenterBits uint16, workerBits uint16
 func (gen *Generator) NextId() (int64, error) {
     currentTimestamp := currentTimeMillis();
     if currentTimestamp < gen.lastTimestamp {
-        //TODO error
-        log.Fatal("Clock moved backwards.  Refusing to generate id")
+        return -1, errors.New("Clock moved backwards.  Refusing to generate id")
     }
 
     gen.lck.Lock()

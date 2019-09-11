@@ -101,8 +101,14 @@ func main() {
     gen, _ := id.NewGenerator(DefaultStartTimestamp, DefaultDataCenterBits, DefaultWorkerBits, DefaultSequenceBits, cfg.DateCenterId, cfg.WorkerId)
 
     http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
-        _id, _ := gen.NextId()
+        _id, err := gen.NextId()
+
         apiRsp := &ApiResponse{0, "success", _id}
+        if err != nil {
+            apiRsp.Code = 1
+            apiRsp.Msg = err.Error()
+        }
+
         writeJsonResponse(&writer, apiRsp)
     })
 
