@@ -7,12 +7,14 @@ import (
 )
 
 type Config struct {
-    AppName      string `toml:"appName"`
-    Profile      string `toml:"profile"`
-    Port         int    `toml:"port"`
-    Router       string `toml:"router"`
-    DateCenterId int64  `toml:"date_center_id"`
-    WorkerId     int64  `toml:"worker_id"`
+    AppName       string `toml:"appName"`
+    Profile       string `toml:"profile"`
+    Port          int    `toml:"port"`
+    Router        string `toml:"router"`
+    DateCenterId  int64  `toml:"date_center_id"`
+    WorkerId      int64  `toml:"worker_id"`
+    ConnectString string `toml:"connectString"`
+    NodePath      string `toml:"nodePath"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

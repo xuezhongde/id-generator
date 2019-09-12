@@ -5,10 +5,13 @@ import (
     "flag"
     "fmt"
     "github.com/juju/errors"
+    "github.com/xuezhongde/id-generator/common"
     "github.com/xuezhongde/id-generator/id"
+    "github.com/xuezhongde/id-generator/monitor"
     "log"
     "net/http"
     "os"
+    "time"
 )
 
 const (
@@ -118,6 +121,10 @@ func main() {
     })
 
     addr := fmt.Sprintf("%s%d", ":", port)
+
+    appInfo := &monitor.AppInfo{common.GetIp(), cfg.AppName, int8(gen.DataCenterId), int8(gen.WorkerId), os.Getpid(), int16(port), cfg.Profile, time.Now().UnixNano() / 1e6}
+    go monitor.Register(cfg.ConnectString, cfg.NodePath, appInfo)
+
     log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
     log.Fatal(http.ListenAndServe(addr, nil))
 }
