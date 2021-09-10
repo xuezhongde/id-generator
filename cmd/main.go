@@ -52,6 +52,30 @@ func init() {
 	flag.Usage = usage
 }
 
+func writeJsonResponse(writer *http.ResponseWriter, v interface{}) {
+	jsonBytes, _ := json.Marshal(v)
+	(*writer).Header().Set("Content-Type", "application/json")
+	_, _ = (*writer).Write(jsonBytes)
+}
+
+func usage() {
+	_, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+	flag.PrintDefaults()
+}
+
+type ApiResponse struct {
+	Code int16  `json:"code"`
+	Msg  string `json:"msg"`
+	Data int64  `json:"data"`
+}
+
+type ProbeResult struct {
+	Code    int16  `json:"code"`
+	Msg     string `json:"msg"`
+	AppName string `json:"appName"`
+	Profile string `json:"profile"`
+}
+
 func main() {
 	flag.Parse()
 
@@ -131,28 +155,4 @@ func main() {
 
 	log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
 	log.Fatal(http.ListenAndServe(addr, nil))
-}
-
-func writeJsonResponse(writer *http.ResponseWriter, v interface{}) {
-	jsonBytes, _ := json.Marshal(v)
-	(*writer).Header().Set("Content-Type", "application/json")
-	_, _ = (*writer).Write(jsonBytes)
-}
-
-func usage() {
-	_, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
-	flag.PrintDefaults()
-}
-
-type ApiResponse struct {
-	Code int16  `json:"code"`
-	Msg  string `json:"msg"`
-	Data int64  `json:"data"`
-}
-
-type ProbeResult struct {
-	Code    int16  `json:"code"`
-	Msg     string `json:"msg"`
-	AppName string `json:"appName"`
-	Profile string `json:"profile"`
 }

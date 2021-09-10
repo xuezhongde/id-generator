@@ -61,6 +61,18 @@ func NewGenerator(startTimestamp int64, dataCenterBits uint16, workerBits uint16
 	return gen, nil
 }
 
+func currentTimeMillis() int64 {
+	return time.Now().UnixNano() / 1e6
+}
+
+func (gen *Generator) getNextTimestamp() int64 {
+	currentTimestamp := currentTimeMillis()
+	for currentTimestamp <= gen.lastTimestamp {
+		currentTimestamp = currentTimeMillis()
+	}
+	return currentTimestamp
+}
+
 func (gen *Generator) NextId() (int64, error) {
 	currentTimestamp := currentTimeMillis()
 	if currentTimestamp < gen.lastTimestamp {
@@ -82,16 +94,4 @@ func (gen *Generator) NextId() (int64, error) {
 	gen.lck.Unlock()
 
 	return (currentTimestamp-gen.StartTimestamp)<<gen.timestampShift | gen.DataCenterId<<gen.dataCenterShift | gen.WorkerId<<gen.workerShift | gen.sequence, nil
-}
-
-func (gen *Generator) getNextTimestamp() int64 {
-	currentTimestamp := currentTimeMillis()
-	for currentTimestamp <= gen.lastTimestamp {
-		currentTimestamp = currentTimeMillis()
-	}
-	return currentTimestamp
-}
-
-func currentTimeMillis() int64 {
-	return time.Now().UnixNano() / 1e6
 }
