@@ -1,154 +1,158 @@
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
-    "encoding/json"
-    "flag"
-    "fmt"
-    "github.com/juju/errors"
-    "github.com/xuezhongde/id-generator/common"
-    "github.com/xuezhongde/id-generator/id"
-    "github.com/xuezhongde/id-generator/monitor"
-    "log"
-    "net/http"
-    "os"
-    "time"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/juju/errors"
+	"github.com/xuezhongde/id-generator/common"
+	"github.com/xuezhongde/id-generator/id"
+	"github.com/xuezhongde/id-generator/monitor"
+	"log"
+	"net/http"
+	"os"
+	"time"
 )
 
 const (
-    DefaultAppName = "id-generator"
-    DefaultProfile = "dev"
-    DefaultPort    = 8000
-    DefaultRouter  = "/id"
-    ProbeRouter    = "/probe"
+	DefaultAppName = "id-generator"
+	DefaultProfile = "dev"
+	DefaultPort    = 8000
+	DefaultRouter  = "/id"
+	ProbeRouter    = "/probe"
 
-    DefaultStartTimestamp int64  = 1563764872049
-    DefaultDataCenterBits uint16 = 5
-    DefaultWorkerBits     uint16 = 5
-    DefaultSequenceBits   uint16 = 12
+	DefaultStartTimestamp int64  = 1563764872049
+	DefaultDataCenterBits uint16 = 5
+	DefaultWorkerBits     uint16 = 5
+	DefaultSequenceBits   uint16 = 12
 )
 
 var (
-    h    bool
-    v    bool
-    c    string
-    d, w int64
-    p    int
-    r    string
+	h    bool
+	v    bool
+	c    string
+	d, w int64
+	p    int
+	r    string
 )
 
 func init() {
-    flag.BoolVar(&h, "h", false, "this help")
-    flag.BoolVar(&v, "v", false, "show version and exit")
-    flag.StringVar(&c, "c", "./etc/id.toml", "id generator config file")
-    flag.Int64Var(&d, "d", -1, "data center id")
-    flag.Int64Var(&w, "w", -1, "worker id")
-    flag.IntVar(&p, "p", -1, "listen on port")
-    flag.StringVar(&r, "r", "", "router path")
+	flag.BoolVar(&h, "h", false, "this help")
+	flag.BoolVar(&v, "v", false, "show version and exit")
+	flag.StringVar(&c, "c", "./etc/id.toml", "id generator config file")
+	flag.Int64Var(&d, "d", -1, "data center id")
+	flag.Int64Var(&w, "w", -1, "worker id")
+	flag.IntVar(&p, "p", -1, "listen on port")
+	flag.StringVar(&r, "r", "", "router path")
 
-    flag.Usage = usage
+	flag.Usage = usage
 }
 
 func main() {
-    flag.Parse()
+	flag.Parse()
 
-    if h {
-        flag.Usage()
-        return
-    }
+	if h {
+		flag.Usage()
+		return
+	}
 
-    if v {
-        fmt.Println("1.0.0")
-        return
-    }
+	if v {
+		fmt.Println("1.0.0")
+		return
+	}
 
-    cfg, err := id.LoadConfig(c)
-    if err != nil {
-        println(errors.ErrorStack(err))
-        return
-    }
+	cfg, err := id.LoadConfig(c)
+	if err != nil {
+		println(errors.ErrorStack(err))
+		return
+	}
 
-    if p >= 0 {
-        cfg.Port = p
-    }
+	if p >= 0 {
+		cfg.Port = p
+	}
 
-    if len(r) > 0 {
-        cfg.Router = r
-    }
+	if len(r) > 0 {
+		cfg.Router = r
+	}
 
-    if d >= 0 {
-        cfg.DateCenterId = d
-    }
+	if d >= 0 {
+		cfg.DateCenterId = d
+	}
 
-    if w >= 0 {
-        cfg.WorkerId = w
-    }
+	if w >= 0 {
+		cfg.WorkerId = w
+	}
 
-    if cfg.Port <= 0 {
-        cfg.Port = DefaultPort
-    }
+	if cfg.Port <= 0 {
+		cfg.Port = DefaultPort
+	}
 
-    if len(cfg.Router) <= 0 {
-        cfg.Router = DefaultRouter
-    }
+	if len(cfg.Router) <= 0 {
+		cfg.Router = DefaultRouter
+	}
 
-    if len(cfg.AppName) <= 0 {
-        cfg.AppName = DefaultAppName
-    }
+	if len(cfg.AppName) <= 0 {
+		cfg.AppName = DefaultAppName
+	}
 
-    if len(cfg.Profile) <= 0 {
-        cfg.Profile = DefaultProfile
-    }
+	if len(cfg.Profile) <= 0 {
+		cfg.Profile = DefaultProfile
+	}
 
-    port := cfg.Port
-    router := cfg.Router
-    gen, _ := id.NewGenerator(DefaultStartTimestamp, DefaultDataCenterBits, DefaultWorkerBits, DefaultSequenceBits, cfg.DateCenterId, cfg.WorkerId)
+	port := cfg.Port
+	router := cfg.Router
+	gen, _ := id.NewGenerator(DefaultStartTimestamp, DefaultDataCenterBits, DefaultWorkerBits, DefaultSequenceBits, cfg.DateCenterId, cfg.WorkerId)
 
-    http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
-        _id, err := gen.NextId()
+	http.HandleFunc(router, func(writer http.ResponseWriter, request *http.Request) {
+		_id, err := gen.NextId()
 
-        apiRsp := &ApiResponse{0, "success", _id}
-        if err != nil {
-            apiRsp.Code = 1
-            apiRsp.Msg = err.Error()
-        }
+		apiRsp := &ApiResponse{0, "success", _id}
+		if err != nil {
+			apiRsp.Code = 1
+			apiRsp.Msg = err.Error()
+		}
 
-        writeJsonResponse(&writer, apiRsp)
-    })
+		writeJsonResponse(&writer, apiRsp)
+	})
 
-    http.HandleFunc(ProbeRouter, func(writer http.ResponseWriter, request *http.Request) {
-        probeResult := &ProbeResult{0, "success", cfg.AppName, cfg.Profile}
-        writeJsonResponse(&writer, probeResult)
-    })
+	http.HandleFunc(ProbeRouter, func(writer http.ResponseWriter, request *http.Request) {
+		probeResult := &ProbeResult{0, "success", cfg.AppName, cfg.Profile}
+		writeJsonResponse(&writer, probeResult)
+	})
 
-    addr := fmt.Sprintf("%s%d", ":", port)
+	addr := fmt.Sprintf("%s%d", ":", port)
 
-    appInfo := &monitor.AppInfo{common.GetIp(), cfg.AppName, int8(gen.DataCenterId), int8(gen.WorkerId), os.Getpid(), int16(port), cfg.Profile, time.Now().UnixNano() / 1e6}
-    go monitor.Register(cfg.ConnectString, cfg.NodePath, appInfo)
+	appInfo := &monitor.AppInfo{common.GetIp(), cfg.AppName, int8(gen.DataCenterId), int8(gen.WorkerId), os.Getpid(), int16(port), cfg.Profile, time.Now().UnixNano() / 1e6}
+	go monitor.Register(cfg.ConnectString, cfg.NodePath, appInfo)
 
-    log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
-    log.Fatal(http.ListenAndServe(addr, nil))
+	log.Printf("IDGenerator startup, port%s, router: %s, dataCenterId: %d, workerId: %d\n", addr, router, gen.DataCenterId, gen.WorkerId)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func writeJsonResponse(writer *http.ResponseWriter, v interface{}) {
-    jsonBytes, _ := json.Marshal(v)
-    (*writer).Header().Set("Content-Type", "application/json")
-    _, _ = (*writer).Write(jsonBytes)
+	jsonBytes, _ := json.Marshal(v)
+	(*writer).Header().Set("Content-Type", "application/json")
+	_, _ = (*writer).Write(jsonBytes)
 }
 
 func usage() {
-    _, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
-    flag.PrintDefaults()
+	_, _ = fmt.Fprintf(os.Stdout, "Usage: id-gen [-hv] [-c config file] [-d data center id] [-w worker id] [-p port] [-r router]\nOptions:\n")
+	flag.PrintDefaults()
 }
 
 type ApiResponse struct {
-    Code int16  `json:"code"`
-    Msg  string `json:"msg"`
-    Data int64  `json:"data"`
+	Code int16  `json:"code"`
+	Msg  string `json:"msg"`
+	Data int64  `json:"data"`
 }
 
 type ProbeResult struct {
-    Code    int16  `json:"code"`
-    Msg     string `json:"msg"`
-    AppName string `json:"appName"`
-    Profile string `json:"profile"`
+	Code    int16  `json:"code"`
+	Msg     string `json:"msg"`
+	AppName string `json:"appName"`
+	Profile string `json:"profile"`
 }
